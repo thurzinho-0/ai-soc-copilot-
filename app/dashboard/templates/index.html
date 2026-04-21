@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SOC Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="logo">
+      <span class="logo-mark">◈</span>
+      <span class="logo-name">SOC Intelligence</span>
+      <span class="logo-badge">v2.0</span>
+    </div>
+    <nav class="topbar-nav">
+      <button class="nav-btn active" data-view="dashboard" onclick="switchView('dashboard', this)">Dashboard</button>
+      <button class="nav-btn"        data-view="alerts"    onclick="switchView('alerts', this)">Alertas</button>
+      <button class="nav-btn"        data-view="copilot"   onclick="switchView('copilot', this)">Copilot IA</button>
+    </nav>
+    <div class="topbar-right">
+      <span class="engine-status" id="engineStatus">
+        <span class="live-dot"></span> Motor ativo
+      </span>
+      <span class="clock" id="clock"></span>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════ VIEW: DASHBOARD ═══════════════════════ -->
+  <div id="view-dashboard" class="view active">
+
+    <div class="page-wrap">
+
+      <!-- KPI ROW -->
+      <section class="kpi-row">
+        <div class="kpi" id="kpi-critical">
+          <div class="kpi-label">Críticos</div>
+          <div class="kpi-value" data-target="7">0</div>
+          <div class="kpi-delta up">↑ +3 na última hora</div>
+        </div>
+        <div class="kpi" id="kpi-threats">
+          <div class="kpi-label">Ameaças 24h</div>
+          <div class="kpi-value" data-target="142">0</div>
+          <div class="kpi-delta up">↑ +18 vs ontem</div>
+        </div>
+        <div class="kpi" id="kpi-blocked">
+          <div class="kpi-label">IPs Bloqueados</div>
+          <div class="kpi-value" data-target="31">0</div>
+          <div class="kpi-delta down">↓ −2 vs ontem</div>
+        </div>
+        <div class="kpi" id="kpi-eps">
+          <div class="kpi-label">Eventos/seg</div>
+          <div class="kpi-value" id="liveEps">284</div>
+          <div class="kpi-delta neutral">logs ingeridos</div>
+        </div>
+        <div class="kpi" id="kpi-ai">
+          <div class="kpi-label">Precisão IA</div>
+          <div class="kpi-value">96<small>%</small></div>
+          <div class="kpi-delta neutral">true positive rate</div>
+        </div>
+      </section>
+
+      <!-- MAIN GRID -->
+      <div class="main-grid">
+
+        <!-- Timeline -->
+        <div class="panel panel-timeline">
+          <div class="panel-head">
+            <span class="panel-title">Timeline de Ameaças</span>
+            <span class="badge badge-live">ao vivo</span>
+          </div>
+          <div class="panel-body">
+            <canvas id="timelineChart" height="160"></canvas>
+          </div>
+        </div>
+
+        <!-- Alert Feed -->
+        <div class="panel panel-feed">
+          <div class="panel-head">
+            <span class="panel-title">Feed de Alertas</span>
+            <span class="badge badge-live">tempo real</span>
+          </div>
+          <div class="alerts-feed" id="alertsFeed"></div>
+        </div>
+
+        <!-- Top IPs -->
+        <div class="panel panel-ips">
+          <div class="panel-head">
+            <span class="panel-title">Top IPs Maliciosos</span>
+            <span class="badge badge-neutral">threat intel</span>
+          </div>
+          <div class="panel-body p0">
+            <table class="ip-table">
+              <thead>
+                <tr>
+                  <th>IP</th><th>País</th><th>Ataques</th><th>Score</th>
+                </tr>
+              </thead>
+              <tbody id="ipTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- MITRE -->
+        <div class="panel panel-mitre">
+          <div class="panel-head">
+            <span class="panel-title">MITRE ATT&CK</span>
+            <span class="badge badge-mitre">mapeamento</span>
+          </div>
+          <div class="panel-body">
+            <div id="mitreGrid"></div>
+          </div>
+        </div>
+
+        <!-- SOAR -->
+        <div class="panel panel-soar">
+          <div class="panel-head">
+            <span class="panel-title">SOAR — Ações Automáticas</span>
+            <span class="badge badge-live">executadas</span>
+          </div>
+          <div class="panel-body">
+            <div class="soar-list" id="soarList"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ VIEW: ALERTS ════════════════════════ -->
+  <div id="view-alerts" class="view">
+    <div class="page-wrap">
+      <div class="alerts-page-head">
+        <h2 class="page-title">Todos os Alertas</h2>
+        <div class="filter-row">
+          <button class="filter-btn active" onclick="filterAlerts('all',    this)">Todos</button>
+          <button class="filter-btn"        onclick="filterAlerts('critical',this)">Crítico</button>
+          <button class="filter-btn"        onclick="filterAlerts('high',   this)">Alto</button>
+          <button class="filter-btn"        onclick="filterAlerts('medium', this)">Médio</button>
+          <button class="filter-btn"        onclick="filterAlerts('low',    this)">Baixo</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="alerts-feed alerts-feed-full" id="alertsFeedFull"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ VIEW: COPILOT ════════════════════════ -->
+  <div id="view-copilot" class="view">
+    <div class="page-wrap copilot-wrap">
+
+      <!-- Chat -->
+      <div class="chat-col">
+        <div class="chat-label">Sessão ativa <span id="msgCount" class="msg-count">0 mensagens</span></div>
+        <div class="messages" id="messages">
+          <div class="empty-state" id="emptyState">
+            <div class="empty-glyph">◈</div>
+            <div class="empty-title">Pronto para analisar</div>
+            <div class="empty-sub">Cole um log, descreva um alerta ou use os atalhos ao lado.</div>
+          </div>
+        </div>
+        <div class="input-card">
+          <div class="input-chips" id="inputChips">
+            <span class="chip" onclick="setCtx('log',   this)">📄 Log</span>
+            <span class="chip" onclick="setCtx('alert', this)">🚨 Alerta</span>
+            <span class="chip" onclick="setCtx('cmd',   this)">💻 Comando</span>
+            <span class="chip" onclick="setCtx('ip',    this)">🌐 IP/IOC</span>
+            <span class="chip" onclick="setCtx('play',  this)">📋 Playbook</span>
+            <span class="chip-active-wrap" id="chipActive" style="display:none">
+              <span id="chipActiveText"></span>
+              <button onclick="clearCtx()">✕</button>
+            </span>
+          </div>
+          <textarea id="userInput"
+            placeholder="Cole um log, descreva o comportamento suspeito ou faça uma pergunta..."
+            rows="2"
+            onkeydown="handleKey(event)"
+            oninput="autoResize(this)"></textarea>
+          <div class="input-footer">
+            <span class="input-hint">Enter ↵ para enviar · Shift+Enter nova linha</span>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+              Analisar
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="copilot-sidebar">
+        <div class="scard">
+          <div class="scard-head">Atalhos rápidos</div>
+          <div class="scard-body prompt-list" id="promptList"></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head">
+            Alertas recentes
+            <span class="badge badge-danger">3 ativos</span>
+          </div>
+          <div class="scard-body p0" id="recentAlerts"></div>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+
+  <!-- STATUSBAR -->
+  <div class="statusbar">
+    <span>SOC Intelligence <b>v2.0</b></span>
+    <span class="sep"></span>
+    <span>Motor: <b>Ativo</b></span>
+    <span class="sep"></span>
+    <span>EPS: <b id="epsBar">284</b></span>
+    <span class="sep"></span>
+    <span>Regras: <b>48</b></span>
+    <span class="sep" style="margin-left:auto"></span>
+    <span>ISO 27001: <b>A.8.15 · A.8.16 · A.5.25</b></span>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+ <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
